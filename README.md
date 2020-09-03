@@ -1,2 +1,2 @@
 # pion-device-examples
-Examples for Media Devices using Pion
+Pion Examples for handling media devices
