@@ -2,7 +2,9 @@ package main
 
 import (
 	"fmt"
+	"io/ioutil"
 	"log"
+	"net/http"
 
 	"github.com/pion/mediadevices"
 	"github.com/pion/mediadevices/examples/internal/signal"
@@ -36,7 +38,7 @@ func init() {
 	log.SetFlags(log.Ldate | log.Ltime | log.Lshortfile)
 }
 
-func main() {
+func sdpHandle(w http.ResponseWriter, r *http.Request) {
 	config := webrtc.Configuration{
 		ICEServers: []webrtc.ICEServer{
 			{
@@ -45,9 +47,11 @@ func main() {
 		},
 	}
 
+	baseOffer, err := ioutil.ReadAll(r.Body)
+
 	// Wait for the offer to be pasted
 	offer := webrtc.SessionDescription{}
-	// signal.Decode(signal.MustReadStdin(), &offer)
+	signal.Decode(string(baseOffer), &offer)
 
 	// Create a new RTCPeerConnection
 	mediaEngine := webrtc.MediaEngine{}
@@ -65,7 +69,7 @@ func main() {
 	// Set the handler for ICE connection state
 	// This will notify you when the peer has connected/disconnected
 	peerConnection.OnICEConnectionStateChange(func(connectionState webrtc.ICEConnectionState) {
-		fmt.Printf("Connection State has changed %s \n", connectionState.String())
+		log.Println("Connection State:", connectionState)
 	})
 
 	md := mediadevices.NewMediaDevices(peerConnection)
@@ -141,6 +145,21 @@ func main() {
 	}
 
 	// Output the answer in base64 so we can paste it in browser
-	fmt.Println(signal.Encode(answer))
-	select {}
+	baseAnswer := signal.Encode(answer)
+	w.Write([]byte(baseAnswer))
+}
+
+func pageHandler(w http.ResponseWriter, r *http.Request) {
+	log.Println(r.URL.Path)
+}
+
+func main() {
+	fs := http.FileServer(http.Dir("html"))
+	http.Handle("/static/", http.StripPrefix("/static/", fs))
+
+	http.HandleFunc("/", pageHandler)
+	http.HandleFunc("/sdp", sdpHandle)
+
+	log.Println("server is ready on http://localhost:8080")
+	http.ListenAndServe(":8080", nil)
 }

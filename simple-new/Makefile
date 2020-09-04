@@ -20,3 +20,5 @@ clean:
 
 open o:
 	open https://jsfiddle.net/gh/get/library/pure/pion/mediadevices/tree/master/examples/internal/jsfiddle/audio-and-video
+	#open http://localhost:8080/
+
